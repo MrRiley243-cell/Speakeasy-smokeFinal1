@@ -398,6 +398,11 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
   }
   .collection-note-title{ font-weight:700; color:var(--gold); margin-bottom:4px; font-size:13px; letter-spacing:0.03em; text-transform:uppercase; }
   .collection-note-sub{ color:var(--text-muted); margin-top:6px; font-size:13px; }
+  .discount-check{
+    display:flex; align-items:flex-start; gap:10px; cursor:pointer;
+    font-size:13.5px; color:var(--text-primary); line-height:1.5;
+  }
+  .discount-check input{ margin-top:3px; flex:none; width:16px; height:16px; accent-color:var(--gold); cursor:pointer; }
 
   /* ---------- Confirmation ---------- */
   .confirm-overlay{
@@ -509,6 +514,7 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
       <div class="badge-row">
         <span class="no-pork-badge">100% pork-free kitchen</span>
         <span class="no-pork-badge">Level 1 &amp; 2 Food Hygiene &amp; Safety Certified</span>
+        <span class="no-pork-badge">NHS &amp; Student discount — 10% off, ID required at collection</span>
       </div>
       <div class="coming-soon-banner">
         <span class="coming-soon-tag">Coming soon</span>
@@ -688,6 +694,13 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
         </div>
 
         <div class="field">
+          <label class="discount-check">
+            <input type="checkbox" id="discountCheck" onchange="toggleDiscount()">
+            <span>I have a valid NHS or Student ID (10% off — show it at collection)</span>
+          </label>
+        </div>
+
+        <div class="field">
           <label for="custNotes">Notes for the kitchen (optional)</label>
           <textarea id="custNotes" rows="2" placeholder="Extra napkins, allergy info, etc."></textarea>
         </div>
@@ -696,13 +709,15 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
       <div class="ticket">
         <div class="ticket-head">
           <div class="tag">SUMMARY</div>
-          <h3>Confirm &amp; pay at collection</h3>
+          <h3>Confirm &amp; pay</h3>
         </div>
         <div class="ticket-body" id="checkoutSummary"></div>
         <div class="ticket-foot">
           <div class="ticket-total"><span>Total due at pickup</span><span id="checkoutTotal">£0.00</span></div>
           <button class="btn btn-primary btn-block" onclick="confirmOrder()">Confirm order</button>
           <div class="form-msg" id="formMsg"></div>
+          <button class="btn btn-gold btn-block" style="margin-top:12px;" onclick="openSumUp()">Pay by Card (SumUp)</button>
+          <div class="slot-note" id="sumupNote" style="text-align:center; margin-top:6px;">Enter £0.00 on the next screen</div>
         </div>
       </div>
     </div>
@@ -791,12 +806,18 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
 <script>
 /* ---------------- Shop contact ---------------- */
 const SHOP_WHATSAPP = '447956184463'; // shop notification number
+const SUMUP_LINK = 'https://pay.sumup.com/b2c/Q2KSRUBC'; // open-amount reusable payment link
+
+function openSumUp(){
+  window.open(SUMUP_LINK, '_blank', 'noopener');
+}
 
 /* ---------------- Menu data (from the shop's printed menu) ---------------- */
 const MAINS = [
   {id:'brisket', name:'Smoked Beef Brisket', unit:'per 100g', price:7.50},
   {id:'chicken_thighs', name:'BBQ Chicken Thighs', unit:'2 pieces', price:7.00},
   {id:'short_rib', name:'Short Rib', unit:'individual', price:11.50},
+  {id:'dino_ribs', name:'Dino Ribs', unit:'individual, larger than short ribs', price:16.50},
   {id:'hot_links', name:'Beef Hot Links', unit:'2 pieces', price:6.00},
   {id:'lamb_chops', name:'Grilled Lamb Chops', unit:'3 pieces', price:12.50},
   {id:'lamb_ribs', name:'Lamb Ribs', unit:'3 ribs', price:13.00},
@@ -841,6 +862,9 @@ const KIDS_SIDES = [
 const SANDWICH_DEAL_MAINS = [
   {id:'deal_brisket_sandwich', name:'Brisket Sandwich (150g brisket)'},
 ];
+const DINO_BOX_MAINS = [
+  {id:'dino_box_ribs', name:'Dino Ribs'},
+];
 const SANDWICH_DEAL_SIDES = [
   {id:'deal_fries', name:'Seasoned Fries'},
   {id:'deal_waffle_fries', name:'Waffle Fries'},
@@ -860,6 +884,8 @@ const BOXES = [
   {id:'sandwich_deal', name:'Sandwich Deal', mains:1, sides:1, sauces:0, drinks:1, breads:1,
     mainsPool:SANDWICH_DEAL_MAINS, sidesPool:SANDWICH_DEAL_SIDES, drinksPool:DRINKS, breadsPool:SANDWICH_BREADS,
     price:12.50, desc:'Brisket sandwich, a side of fries and a can — mention your BBQ sauce choice in the notes.'},
+  {id:'dino_box', name:'Dino Rib Box', mains:1, sides:2, sauces:1,
+    mainsPool:DINO_BOX_MAINS, price:19.50, desc:'1 Dino Rib — bigger than our short rib — with 2 sides and a sauce of your choice.'},
 ];
 
 const PLATTERS = [
@@ -1388,6 +1414,16 @@ function goToCheckout(){
   document.getElementById('checkout').scrollIntoView({behavior:'smooth'});
 }
 
+let hasDiscount = false;
+function toggleDiscount(){
+  hasDiscount = document.getElementById('discountCheck').checked;
+  renderCheckoutSummary();
+}
+function finalTotal(){
+  const total = cartTotal();
+  return hasDiscount ? total * 0.9 : total;
+}
+
 function renderCheckoutSummary(){
   const el = document.getElementById('checkoutSummary');
   if(cart.length===0){
@@ -1400,8 +1436,15 @@ function renderCheckoutSummary(){
         <div class="ticket-line-items">${detail}</div>
       </div>`;
     }).join('');
+    if(hasDiscount){
+      el.innerHTML += `<div class="ticket-line">
+        <div class="ticket-line-top"><span>NHS / Student discount (10%)</span><span>-${money(cartTotal()*0.1)}</span></div>
+      </div>`;
+    }
   }
-  document.getElementById('checkoutTotal').textContent = money(cartTotal());
+  document.getElementById('checkoutTotal').textContent = money(finalTotal());
+  const sumupNote = document.getElementById('sumupNote');
+  if(sumupNote){ sumupNote.textContent = `Enter ${money(finalTotal())} on the next screen`; }
 }
 
 /* ---------------- Checkout / confirm ---------------- */
@@ -1466,18 +1509,19 @@ function confirmOrder(){
     return `${title} — ${detail.replace(/<br>/g,' / ')}`;
   });
 
-  lastOrder = { orderId, name, phone, email, slot, notes, total: cartTotal(), itemLines, contactPref };
+  lastOrder = { orderId, name, phone, email, slot, notes, total: finalTotal(), discounted: hasDiscount, itemLines, contactPref };
 
   document.getElementById('confirmIdTop').textContent = 'ORDER ' + orderId;
   document.getElementById('confirmDetail').innerHTML = `
     <strong>${name}</strong><br>
     Pickup: <strong>Saturday, ${slot}</strong><br>
     ${itemLines.map(l=>'• '+l).join('<br>')}<br>
-    Total due at pickup: <strong>${money(cartTotal())}</strong>
+    ${hasDiscount ? 'NHS/Student discount applied (10% — bring ID)<br>' : ''}
+    Total due at pickup: <strong>${money(finalTotal())}</strong>
     ${notes ? '<br>Note: '+notes : ''}
   `;
 
-  const qrPayload = `SPEAKEASY SMOKEHOUSE | Order ${orderId} | ${name} | Pickup Sat ${slot} | Total ${money(cartTotal())}`;
+  const qrPayload = `SPEAKEASY SMOKEHOUSE | Order ${orderId} | ${name} | Pickup Sat ${slot} | Total ${money(finalTotal())}${hasDiscount ? ' (NHS/Student 10% applied)' : ''}`;
   const qrHolder = document.getElementById('confirmQr');
   qrHolder.innerHTML = '';
   try{
@@ -1491,19 +1535,23 @@ function confirmOrder(){
   document.getElementById('confirmOverlay').classList.add('open');
 
   cart = [];
+  hasDiscount = false;
+  const dc = document.getElementById('discountCheck');
+  if(dc) dc.checked = false;
   renderTicket();
   renderCheckoutSummary();
 }
 
 function renderConfirmActions(){
   const el = document.getElementById('confirmActions');
-  const summaryText = `New order — Speakeasy Smokehouse\nOrder ${lastOrder.orderId}\nName: ${lastOrder.name}\nPhone: ${lastOrder.phone}\nPickup: Saturday ${lastOrder.slot}\n${lastOrder.itemLines.join('\n')}\nTotal: ${money(lastOrder.total)}${lastOrder.notes ? '\nNote: '+lastOrder.notes : ''}`;
+  const discountLine = lastOrder.discounted ? '\nNHS/Student discount applied (10% — ID required at collection)' : '';
+  const summaryText = `New order — Speakeasy Smokehouse\nOrder ${lastOrder.orderId}\nName: ${lastOrder.name}\nPhone: ${lastOrder.phone}\nPickup: Saturday ${lastOrder.slot}\n${lastOrder.itemLines.join('\n')}${discountLine}\nTotal: ${money(lastOrder.total)}${lastOrder.notes ? '\nNote: '+lastOrder.notes : ''}`;
   const wa = `https://wa.me/${SHOP_WHATSAPP}?text=${encodeURIComponent(summaryText)}`;
 
   let html = `<a class="btn btn-gold btn-block" href="${wa}" target="_blank" rel="noopener">Send order to us on WhatsApp</a>`;
 
   if(lastOrder.email){
-    const copyText = `Your Speakeasy Smokehouse order ${lastOrder.orderId}\nPickup: Saturday ${lastOrder.slot}\n${lastOrder.itemLines.join('\n')}\nTotal due at pickup: ${money(lastOrder.total)}`;
+    const copyText = `Your Speakeasy Smokehouse order ${lastOrder.orderId}\nPickup: Saturday ${lastOrder.slot}\n${lastOrder.itemLines.join('\n')}${discountLine}\nTotal due at pickup: ${money(lastOrder.total)}`;
     const mailto = `mailto:${encodeURIComponent(lastOrder.email)}?subject=${encodeURIComponent('Your Speakeasy Smokehouse order '+lastOrder.orderId)}&body=${encodeURIComponent(copyText)}`;
     html += `<a class="btn btn-ghost btn-block" href="${mailto}">Email me a copy</a>`;
   }
