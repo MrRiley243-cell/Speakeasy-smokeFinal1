@@ -876,10 +876,12 @@ const SANDWICH_BREADS = [
 ];
 const SANDWICH_SAUCES = ['bbq_sauce','bourbon_bbq','espresso_bbq'];
 
+const MAINS_NO_DINO = MAINS.filter(m=>m.id!=='dino_ribs');
+
 const BOXES = [
-  {id:'solo', name:'Solo Box', mains:1, sides:2, sauces:1, price:11.50, desc:'1 main, 2 sides and a sauce of your choice.'},
-  {id:'duo', name:'Duo Box', mains:2, sides:3, sauces:2, price:21.00, desc:'2 mains, 3 sides and 2 sauces — built for two.'},
-  {id:'family', name:'Family Box', mains:4, sides:4, sauces:2, freeSideId:'cornbread', serves:'Serves 4', price:42.00, desc:'4 mains, 4 sides and 2 sauces, plus a free cornbread.'},
+  {id:'solo', name:'Solo Box', mains:1, sides:2, sauces:1, mainsPool:MAINS_NO_DINO, price:11.50, desc:'1 main, 2 sides and a sauce of your choice.'},
+  {id:'duo', name:'Duo Box', mains:2, sides:3, sauces:2, mainsPool:MAINS_NO_DINO, price:21.00, desc:'2 mains, 3 sides and 2 sauces — built for two.'},
+  {id:'family', name:'Family Box', mains:4, sides:4, sauces:2, freeSideId:'cornbread', mainsPool:MAINS_NO_DINO, serves:'Serves 4', price:42.00, desc:'4 mains, 4 sides and 2 sauces, plus a free cornbread.'},
   {id:'kids', name:'Kids Box', mains:1, sides:1, sauces:0, freeSideId:'corn', mainsPool:KIDS_MAINS, sidesPool:KIDS_SIDES, price:6.50, desc:'Pick one main and one side, plus a free corn on the cob.'},
   {id:'sandwich_deal', name:'Sandwich Deal', mains:1, sides:1, sauces:0, drinks:1, breads:1,
     mainsPool:SANDWICH_DEAL_MAINS, sidesPool:SANDWICH_DEAL_SIDES, drinksPool:DRINKS, breadsPool:SANDWICH_BREADS,
