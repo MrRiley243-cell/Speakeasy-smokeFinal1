@@ -1550,7 +1550,8 @@ function renderConfirmActions(){
   const summaryText = `New order — Speakeasy Smokehouse\nOrder ${lastOrder.orderId}\nName: ${lastOrder.name}\nPhone: ${lastOrder.phone}\nPickup: Saturday ${lastOrder.slot}\n${lastOrder.itemLines.join('\n')}${discountLine}\nTotal: ${money(lastOrder.total)}${lastOrder.notes ? '\nNote: '+lastOrder.notes : ''}`;
   const wa = `https://wa.me/${SHOP_WHATSAPP}?text=${encodeURIComponent(summaryText)}`;
 
-  let html = `<a class="btn btn-gold btn-block" href="${wa}" target="_blank" rel="noopener">Send order to us on WhatsApp</a>`;
+  let html = `<button class="btn btn-primary btn-block" onclick="openSumUp()">Pay by Card (SumUp) — ${money(lastOrder.total)}</button>`;
+  html += `<a class="btn btn-gold btn-block" href="${wa}" target="_blank" rel="noopener">Send order to us on WhatsApp</a>`;
 
   if(lastOrder.email){
     const copyText = `Your Speakeasy Smokehouse order ${lastOrder.orderId}\nPickup: Saturday ${lastOrder.slot}\n${lastOrder.itemLines.join('\n')}${discountLine}\nTotal due at pickup: ${money(lastOrder.total)}`;
